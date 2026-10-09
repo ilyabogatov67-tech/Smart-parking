@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Parking | Панель управления</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0b1120;
+  color: #f1f5f9;
+}
+header {
+  padding: 24px 7%;
+  border-bottom: 1px solid #263448;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.logo { font-size: 23px; font-weight: 800; }
+.logo span { color: #38bdf8; }
+.tag {
+  color: #34d399;
+  font-size: 13px;
+}
+main { max-width: 1150px; margin: 48px auto; padding: 0 24px; }
+h1 { font-size: 36px; margin-bottom: 8px; }
+.subtitle { color: #94a3b8; margin-bottom: 30px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 25px;
+}
+.card, .panel {
+  background: #151e30;
+  border: 1px solid #263448;
+  border-radius: 16px;
+  padding: 25px;
+}
+.card small { color: #94a3b8; }
+.card strong {
+  display: block;
+  font-size: 29px;
+  margin-top: 12px;
+}
+.card strong.blue { color: #38bdf8; }
+.card strong.green { color: #34d399; }
+h2 { margin: 0 0 22px; font-size: 21px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+label {
+  display: block;
+  color: #cbd5e1;
+  margin-bottom: 9px;
+  font-size: 14px;
+}
+input {
+  width: 100%;
+  background: #0b1120;
+  border: 1px solid #334155;
+  border-radius: 9px;
+  padding: 15px;
+  color: white;
+  font-size: 16px;
+}
+input:focus { outline: 2px solid #38bdf8; }
+button {
+  background: #0284c7;
+  color: white;
+  border: 0;
+  border-radius: 9px;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { background: #0369a1; }
+button:disabled { opacity: .6; cursor: wait; }
+.secondary { background: #334155; }
+.secondary:hover { background: #475569; }
+.actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.result { color: #34d399; margin-top: 18px; min-height: 22px; }
+.history { margin-top: 25px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 15px;
+  border-bottom: 1px solid #334155;
+}
+td { padding: 16px 15px; border-bottom: 1px solid #263448; }
+.price { color: #34d399; font-weight: 600; }
+footer {
+  text-align: center;
+  color: #64748b;
+  padding: 35px;
+  font-size: 13px;
+}
+@media(max-width: 700px) {
+  .stats, .form-grid { grid-template-columns: 1fr; }
+  h1 { font-size: 28px; }
+  header { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SMART<span>PARKING</span></div>
+  <div class="tag">● Parking Management System</div>
+</header>
+
+<main>
+<h1>Панель управления парковкой</h1>
+<p class="subtitle">Контроль парковочных сессий и автоматический расчёт стоимости</p>
+
+<section class="stats">
+  <div class="card">
+    <small>Всего парковок</small>
+    <strong class="blue" id="totalCount">0</strong>
+  </div>
+  <div class="card">
+    <small>Общая выручка</small>
+    <strong class="green" id="totalRevenue">0 ₽</strong>
+  </div>
+  <div class="card">
+    <small>Стоимость часа</small>
+    <strong>100 ₽</strong>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Новая парковочная сессия</h2>
+  <form id="parkingForm">
+    <div class="form-grid">
+      <div>
+        <label for="plate">Государственный номер</label>
+        <input id="plate" placeholder="А123ВС77" maxlength="20" required>
+      </div>
+      <div>
+        <label for="minutes">Продолжительность (минуты)</label>
+        <input id="minutes" type="number" min="1" max="43200" step="1" placeholder="90" required>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit" id="saveBtn">Рассчитать и сохранить</button>
+      <button type="button" class="secondary" id="refreshBtn">Обновить историю</button>
+    </div>
+  </form>
+  <div class="result" id="result" role="status" aria-live="polite"></div>
+</section>
+
+<section class="panel history">
+  <h2>История парковочных сессий</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Автомобиль</th>
+          <th>Время</th>
+          <th>Стоимость</th>
+          <th>Дата</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+
+<footer>Smart Parking © 2026 | Docker Compose Project</footer>
+
+<script>
+const form = document.getElementById("parkingForm");
+const result = document.getElementById("result");
+const historyBody = document.getElementById("historyBody");
+const saveBtn = document.getElementById("saveBtn");
+const refreshBtn = document.getElementById("refreshBtn");
+
+const money = value =>
+  new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
+    maximumFractionDigits: 0
+  }).format(value);
+
+async function api(url, options = {}) {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Ошибка сервера");
+  }
+  return data;
+}
+
+async function loadHistory() {
+  refreshBtn.disabled = true;
+  try {
+    const data = await api("/api/sessions");
+    const sessions = data.sessions;
+
+    document.getElementById("totalCount").textContent =
+      sessions.length;
+
+    const revenue = sessions.reduce(
+      (sum, session) => sum + Number(session.total), 0
+    );
+
+    document.getElementById("totalRevenue").textContent =
+      money(revenue);
+
+    historyBody.replaceChildren();
+
+    for (const session of sessions) {
+      const tr = document.createElement("tr");
+      const values = [
+        session.id,
+        session.plate,
+        session.minutes + " мин",
+        money(session.total),
+        new Date(session.created_at).toLocaleString("ru-RU")
+      ];
+
+      for (let i = 0; i < values.length; i++) {
+        const td = document.createElement("td");
+        td.textContent = values[i];
+        if (i === 3) td.className = "price";
+        tr.appendChild(td);
+      }
+
+      historyBody.appendChild(tr);
+    }
+
+    if (sessions.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      td.textContent = "Пока нет парковочных сессий";
+      tr.appendChild(td);
+      historyBody.appendChild(tr);
+    }
+  } catch (error) {
+    result.textContent = "Ошибка загрузки: " + error.message;
+  } finally {
+    refreshBtn.disabled = false;
+  }
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  saveBtn.disabled = true;
+  result.textContent = "Выполняется расчёт...";
+
+  try {
+    const data = await api("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plate: document.getElementById("plate").value.trim(),
+        minutes: Number(document.getElementById("minutes").value)
+      })
+    });
+
+    result.textContent =
+      "Парковка сохранена! Стоимость: " + money(data.total);
+
+    form.reset();
+    await loadHistory();
+  } catch (error) {
+    result.textContent = "Ошибка: " + error.message;
+  } finally {
+    saveBtn.disabled = false;
+  }
+});
+
+refreshBtn.addEventListener("click", loadHistory);
+loadHistory();
+</script>
+</body>
+</html>
