@@ -64,11 +64,11 @@ Backend -> Web-service
 
 Скачать проект:
 
-git clone <URL-РЕПОЗИТОРИЯ>
+git clone https://github.com/ilyabogatov67-tech/Smart-parking.git
 
 Перейти в папку проекта:
 
-cd smart-parking
+cd Smart-parking
 
 Запустить контейнеры:
 
